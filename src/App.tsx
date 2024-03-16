@@ -1,7 +1,22 @@
-import * as React from "react";
+import { useEffect, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
+interface Iresults {
+  results: any;
+  pages: number;
+  resultsPerPage: number;
+}
 
-const fetchData = async ({ query = "", page = 0, tag = "" }) => {
+interface IFetchParams {
+  query?: string | undefined;
+  page?: number | undefined;
+  tag?: string | undefined;
+}
+
+const fetchData = async ({
+  query = "",
+  page = 0,
+  tag = "",
+}: IFetchParams): Promise<Iresults> => {
   return fetch(
     `https://hn.algolia.com/api/v1/search?query=${query}&tags=${encodeURIComponent(
       tag
@@ -16,20 +31,45 @@ const fetchData = async ({ query = "", page = 0, tag = "" }) => {
 };
 
 export default function HackerNewsSearch() {
-  const [query, setQuery] = React.useState("");
-  const [results, setResults] = React.useState([]);
-  const [tag, setTag] = React.useState("story");
-  const [page, setPage] = React.useState(0);
-  const [resultsPerPage, setResultsPerPage] = React.useState(0);
-  const [totalPages, setTotalPages] = React.useState(50);
-  const [loading, setLoading] = React.useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [tag, setTag] = useState("story");
+  const [page, setPage] = useState(0);
+  const [resultsPerPage, setResultsPerPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(50);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const isFirstPage = page === 0;
+  const isLastPage = page === results.length - 1;
+
+  useEffect(() => {
+    const handleFetchData = async () => {
+      setLoading(true);
+      setResults([]);
+      const { results, pages, resultsPerPage } = await fetchData({
+        query,
+        page,
+        tag,
+      });
+      setResults(results);
+      setTotalPages(pages);
+      setResultsPerPage(resultsPerPage);
+      setLoading(false);
+    };
+
+    handleFetchData();
+  }, [page]);
+
+  console.log(results);
+  console.log(page);
+  console.log(resultsPerPage);
+
+  const handleSearch = (e: any) => {
     setQuery(e.target.value);
     setPage(0);
   };
 
-  const handleTag = (e) => {
+  const handleTag = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTag(e.target.value);
     setPage(0);
   };
@@ -41,7 +81,6 @@ export default function HackerNewsSearch() {
   const handlePrevPage = () => {
     setPage(page - 1);
   };
-
   return (
     <main>
       <h1>Hacker News Search</h1>
@@ -70,39 +109,48 @@ export default function HackerNewsSearch() {
       <section>
         <header>
           <h2>
-            <span>No Results OR Page TODO of TODO</span>
+            <span>
+              {results ? "page " + page + " of " + totalPages : "No Results"}
+            </span>
             <RotatingLines
               strokeColor="grey"
               strokeWidth="5"
               animationDuration="0.75"
               width="20"
-              visible={null}
+              visible={loading}
             />
           </h2>
           <div>
-            <button className="link" onClick={null} disabled={null}>
+            <button
+              className="link"
+              onClick={handlePrevPage}
+              disabled={isFirstPage}
+            >
               Previous
             </button>
-            <button className="link" onClick={null} disabled={null}>
+            <button
+              className="link"
+              onClick={handleNextPage}
+              disabled={isLastPage}
+            >
               Next
             </button>
           </div>
         </header>
-        <ul>
-          {results.map(({ url, objectID, title }, index) => {
-            const href =
-              url || `https://news.ycombinator.com/item?id=${objectID}`;
 
-            return (
-              <li key={null}>
-                <span>{null}.</span>
-                <a href={href} target="_blank" rel="noreferrer">
-                  TODO
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+        {results.map(({ url, objectID, title }, index) => {
+          const href = url || "https://gatinhosfofos.com.br/";
+          const position = resultsPerPage * page + index + 1;
+
+          return (
+            <li key={objectID}>
+              <span>{position}.</span>
+              <a href={href} target="_blank" rel="noreferrer">
+                {title}
+              </a>
+            </li>
+          );
+        })}
       </section>
     </main>
   );
